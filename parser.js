@@ -79,7 +79,7 @@ function parseNotes(mode, what, difficulty, steps, what2, notes) {
 
 function parseMeasures(data) {
   var baseBPM = data.bpms[0][1];
-  var measureLength = 1000 / baseBPM;
+  var measureLength = 60000 / baseBPM * 4;
   console.log(data.notes);
   data.notes.forEach(function(difficulty) {
     var offset = 0;
@@ -89,14 +89,13 @@ function parseMeasures(data) {
       var noteTime = measureLength / len;
       measure.forEach(function(note, i) {
         // add mine handling
-        if (!parseInt(note)) {
-          return;
+        if (parseInt(note)) {
+          notes.push({
+            offset: offset,
+            steps: note,
+            measure: measureId
+          });
         }
-        notes.push({
-          offset: offset,
-          steps: note,
-          measure: measureId
-        });
         offset += noteTime;
       });
     });
