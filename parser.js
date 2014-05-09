@@ -23,8 +23,7 @@ var keyMap = {
   'TICKCOUNTS': ['tickCounts', parseTickCounts],
   'BGCHANGES': ['bgChanges', parseBgChanges],
   'KEYSOUNDS': ['keySounds', parseKeySounds],
-  'ATTACKS': ['attacks', parseAttacks],
-  'NOTES': ['measures', parseMeasures]
+  'ATTACKS': ['attacks', parseAttacks]
 };
 
 function parseBoolean(v) {
@@ -32,13 +31,10 @@ function parseBoolean(v) {
 }
 
 function parseBPMs(v) {
-//  var bpms = {};
-//  v.split(',').forEach(function(str) {
-//    var arr = str.split('=');
-//    bpms[arr[0]] = parseFloat(arr[1]);
-//  });
   return v.split(',').map(function(str) {
-    return str.split('=');
+    return str.split('=').map(function(flt) {
+      return parseFloat(flt);
+    });
   });
 }
 
@@ -70,22 +66,41 @@ function parseAttacks(v) {
   return v;
 }
 
-function parseMeasures(mode, what, difficulty, steps, what2, notes) {
+function parseNotes(mode, what, difficulty, steps, what2, notes) {
   return {
     mode: mode,
     difficulty: difficulty,
     steps: parseInt(steps),
-    notes: notes.split(',').map(function(measure) {
+    parsedNotes: notes.split(',').map(function(measure) {
       return measure.match(/.{1,4}/g);
     })
   };
 }
 
-function parseNotes(data) {
+function parseMeasures(data) {
   var baseBPM = data.bpms[0][1];
-  var measures = data.measures;
-  var notes = [];
-  return notes;
+  var measureLength = 1000 / baseBPM;
+  console.log(data.notes);
+  data.notes.forEach(function(difficulty) {
+    var offset = 0;
+    var notes = difficulty.notes = [];
+    difficulty.parsedNotes.forEach(function(measure, measureId) {
+      var len = measure.length;
+      var noteTime = measureLength / len;
+      measure.forEach(function(note, i) {
+        // add mine handling
+        if (!parseInt(note)) {
+          return;
+        }
+        notes.push({
+          offset: offset,
+          steps: note,
+          measure: measureId
+        });
+        offset += noteTime;
+      });
+    });
+  });
 }
 
 var fs = require('fs');
@@ -104,18 +119,21 @@ var inData = content
     return field.split(':');
   });
 
-var outData = {};
+var outData = {
+  notes: []
+};
 
 inData.forEach(function(field) {
   var fieldName = field[0].slice(1);
   var map = keyMap[fieldName];
-  if (!map) return;
-  if (typeof map === 'string') {
+  if (fieldName === 'NOTES') {
+    outData.notes.push(parseNotes.apply(undefined, field.slice(1)));
+  } else if (typeof map === 'string') {
     outData[map] = field[1];
-  } else {
+  } else if (map) {
     outData[map[0]] = map[1].apply(undefined, field.slice(1));
   }
 });
-outData.notes = parseNotes(outData);
+parseMeasures(outData);
 
-console.log(outData, outData.notes);
+console.log(outData.notes[0].notes);
