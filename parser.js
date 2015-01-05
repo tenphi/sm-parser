@@ -25,6 +25,47 @@ var keyMap = {
   'KEYSOUNDS': ['keySounds', parseKeySounds],
   'ATTACKS': ['attacks', parseAttacks]
 };
+var sizes = {
+  'dance': {
+    'threepanel': 3,
+    'single': 4,
+    'solo': 6,
+    'double': 8,
+    'couple': 8
+  },
+  'pump': {
+    'single': 5,
+    'halfdouble': 6,
+    'double': 10,
+    'couple': 10
+  },
+  'ez2': {
+    'single': 5,
+    'double': 10,
+    'real': 7,
+  },
+  'para':{
+    'single': 5
+  },
+  'ds3ddx': {
+    'single': 8
+  },
+  'maniax': {
+    'single': 4,
+    'double': 8,
+  },
+  'techno': {
+    'single4': 4,
+    'single5': 5,
+    'single8': 8,
+    'double4': 8,
+    'double5': 10,
+  },
+  'pnm': {
+    'five': 5,
+    'nine': 9
+  }
+};
 
 function parseOffset(v) {
   return parseFloat(v) * 1000;
@@ -71,12 +112,15 @@ function parseAttacks(v) {
 }
 
 function parseNotes(mode, what, difficulty, steps, what2, notes) {
+  var modeDesc = mode.split('-');
+  var upperLimit = sizes[modeDesc[0]][modeDesc[1]];
   return {
     mode: mode,
     difficulty: difficulty,
     steps: parseInt(steps),
     rawNotes: notes.split(',').map(function(measure) {
-      return measure.match(/.{1,4}/g);
+      var re = new RegExp(".{1," + upperLimit + "}","g");
+      return measure.match(re);
     })
   };
 }
@@ -88,6 +132,7 @@ function parseMeasures(data) {
     var offset = 0;
     var notes = difficulty.notes = [];
     difficulty.rawNotes.forEach(function(measure, measureId) {
+      if(!measure){return}
       var len = measure.length;
       var noteTime = measureLength / len;
       measure.forEach(function(note, i) {
@@ -146,6 +191,7 @@ var outFile = path.join(dir, filename + '.json');
 
 var content = fs.readFileSync(filepath, 'utf-8');
 var inData = content
+  .replace(/(\/\*([\s\S]*?)\*\/)|(\/\/(.*)$)/gm, '')
   .replace(/[\r\n\t\s]/g, '')
   .split(';')
   .map(function(field) {
@@ -169,4 +215,4 @@ inData.forEach(function(field) {
 });
 parseMeasures(outData);
 
-fs.writeFileSync(outFile, JSON.stringify(outData), 'utf-8');
+fs.writeFileSync(outFile, JSON.stringify(outData, undefined, '\t'), 'utf-8');
